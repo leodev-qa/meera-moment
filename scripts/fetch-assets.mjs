@@ -2,8 +2,8 @@ import { mkdir, access, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const BASES = [
-  "https://cdn.jsdelivr.net/gh/leodev-qa/meera-moment@main/public/",
   "https://raw.githubusercontent.com/leodev-qa/meera-moment/main/public/",
+  "https://cdn.jsdelivr.net/gh/leodev-qa/meera-moment@main/public/",
 ];
 
 const FILES = [
@@ -47,12 +47,16 @@ async function download(file) {
   let lastErr;
   for (const base of BASES) {
     try {
-      const res = await fetch(base + file);
+      const res = await fetch(base + file, { redirect: "follow" });
       if (!res.ok) {
         lastErr = new Error(`${base}${file} -> ${res.status}`);
         continue;
       }
       const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length < 100) {
+        lastErr = new Error(`${base}${file} too small`);
+        continue;
+      }
       await writeFile(dest, buf);
       console.log("fetched", file, buf.length);
       return;

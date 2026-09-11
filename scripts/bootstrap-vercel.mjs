@@ -2,8 +2,9 @@ import { execSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 
 const BUNDLE_URLS = [
-  "https://cdn.jsdelivr.net/gh/leodev-qa/meera-moment@main/bundle.tar.gz",
+  "https://raw.githubusercontent.com/leodev-qa/meera-moment/main/bundle.tar.gz",
   "https://github.com/leodev-qa/meera-moment/raw/main/bundle.tar.gz",
+  "https://cdn.jsdelivr.net/gh/leodev-qa/meera-moment@main/bundle.tar.gz",
 ];
 
 async function ensureBundle() {
@@ -13,13 +14,16 @@ async function ensureBundle() {
     for (const url of BUNDLE_URLS) {
       try {
         console.log("downloading", url);
-        const res = await fetch(url);
+        const res = await fetch(url, { redirect: "follow" });
         if (!res.ok) throw new Error(`${url} -> ${res.status}`);
-        writeFileSync("bundle.tar.gz", Buffer.from(await res.arrayBuffer()));
+        const buf = Buffer.from(await res.arrayBuffer());
+        if (buf.length < 1000) throw new Error(`${url} too small: ${buf.length}`);
+        writeFileSync("bundle.tar.gz", buf);
         lastErr = null;
         break;
       } catch (err) {
         lastErr = err;
+        console.warn(String(err));
       }
     }
     if (lastErr) throw lastErr;
